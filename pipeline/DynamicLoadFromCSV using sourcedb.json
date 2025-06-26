@@ -1,0 +1,428 @@
+{
+	"name": "DynamicLoadFromCSV using sourcedb",
+	"properties": {
+		"activities": [
+			{
+				"name": "GetMetadataFromCSV",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobStorageReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "DelimitedText1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEachTable",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "GetMetadataFromCSV",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GetMetadataFromCSV').output.value\n",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Set variable1",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "SourceFileName",
+								"value": {
+									"value": "@item().SourceFileName",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Incremental",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Set variable1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set variable1_copy1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set variable1_copy1_copy1_copy2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set variable1_copy1_copy1_copy3",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set variable2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(item().LoadType, 'Incremental')\n",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "Copy data2",
+										"type": "Copy",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "DelimitedTextSource",
+												"storeSettings": {
+													"type": "AzureBlobStorageReadSettings",
+													"recursive": true,
+													"enablePartitionDiscovery": false
+												},
+												"formatSettings": {
+													"type": "DelimitedTextReadSettings"
+												}
+											},
+											"sink": {
+												"type": "AzureSqlSink",
+												"writeBehavior": "upsert",
+												"upsertSettings": {
+													"useTempDB": true,
+													"keys": [
+														"ProductID"
+													]
+												},
+												"sqlWriterUseTableLock": false,
+												"disableMetricsCollection": false
+											},
+											"enableStaging": false,
+											"translator": {
+												"type": "TabularTranslator",
+												"typeConversion": true,
+												"typeConversionSettings": {
+													"allowDataTruncation": true,
+													"treatBooleanAsNumber": false
+												}
+											}
+										},
+										"inputs": [
+											{
+												"referenceName": "sourcecsv",
+												"type": "DatasetReference",
+												"parameters": {
+													"folderPath": "@concat('input/', replace(item().SourceFileName, '.csv', ''))",
+													"fileName": "@item().SourceFileName"
+												}
+											}
+										],
+										"outputs": [
+											{
+												"referenceName": "DS_SinkTable",
+												"type": "DatasetReference",
+												"parameters": {
+													"tableName": {
+														"value": "@item().TargetTableName",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									}
+								],
+								"ifTrueActivities": [
+									{
+										"name": "Lookup1",
+										"type": "Lookup",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "AzureSqlSource",
+												"sqlReaderQuery": {
+													"value": "@concat('SELECT LastWatermarkValue FROM dbo.IncrementalLoadTracking WHERE TargetTableName = ''dbo.', item().TargetTableName, '''')\n",
+													"type": "Expression"
+												},
+												"queryTimeout": "02:00:00",
+												"partitionOption": "None"
+											},
+											"dataset": {
+												"referenceName": "AzureSqlTable1",
+												"type": "DatasetReference"
+											},
+											"firstRowOnly": true
+										}
+									},
+									{
+										"name": "Stored procedure1",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [
+											{
+												"activity": "Data flow1",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [
+											{
+												"name": "TableName",
+												"value": "employee"
+											},
+											{
+												"name": "LastWatermarkValue",
+												"value": "@'2025-06-01 00:00:00'"
+											}
+										],
+										"typeProperties": {
+											"storedProcedureName": "[dbo].[usp_UpdateWatermark]",
+											"storedProcedureParameters": {
+												"NewWatermark": {
+													"value": {
+														"value": "@'2025-06-01 00:00:00'",
+														"type": "Expression"
+													},
+													"type": "DateTime"
+												},
+												"TableName": {
+													"value": {
+														"value": "@item().TargetTableName",
+														"type": "Expression"
+													},
+													"type": "String"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "AzureSqlDatabase1",
+											"type": "LinkedServiceReference"
+										}
+									},
+									{
+										"name": "Data flow1",
+										"type": "ExecuteDataFlow",
+										"dependsOn": [
+											{
+												"activity": "Lookup1",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"dataflow": {
+												"referenceName": "dataflow1",
+												"type": "DataFlowReference",
+												"parameters": {
+													"folderPath": {
+														"value": "@concat('input/', replace(item().SourceFileName, '.csv', ''))\n",
+														"type": "Expression"
+													},
+													"fileName": {
+														"value": "@item().SourceFileName",
+														"type": "Expression"
+													},
+													"watermarkColumn": {
+														"value": "@item().watermarkcolumn",
+														"type": "Expression"
+													},
+													"LastWatermarkValue": {
+														"value": "'@{'2025-06-01 00:00:00'\n}'",
+														"type": "Expression"
+													}
+												},
+												"datasetParameters": {
+													"source1": {
+														"folderPath": "@concat('input/', replace(item().SourceFileName, '.csv', ''))",
+														"fileName": "@item().SourceFileName"
+													},
+													"sink1": {
+														"tableName": "@item().TargetTableName"
+													}
+												}
+											},
+											"compute": {
+												"coreCount": 8,
+												"computeType": "General"
+											},
+											"traceLevel": "Fine"
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Set variable1_copy1",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "TargetTableName",
+								"value": {
+									"value": "@item().TargetTableName",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set variable1_copy1_copy1_copy2",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "WatermarkColumn",
+								"value": {
+									"value": "@item().WatermarkColumn",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set variable1_copy1_copy1_copy3",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "LoadType",
+								"value": {
+									"value": "@item().LoadType",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set variable2",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "folderPath",
+								"value": {
+									"value": "@concat('input/', replace(item().SourceFileName, '.csv', ''))\n",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"SourceFileName": {
+				"type": "String"
+			},
+			"TargetTableName": {
+				"type": "String"
+			},
+			"LoadType": {
+				"type": "String"
+			},
+			"WatermarkColumn": {
+				"type": "String"
+			},
+			"folderPath": {
+				"type": "String"
+			},
+			"FileName": {
+				"type": "String"
+			},
+			"TargetTable": {
+				"type": "String"
+			},
+			"TestFolder": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-06-24T13:27:09Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

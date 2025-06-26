@@ -1,0 +1,36 @@
+{
+	"name": "ChildPipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "LogActivity",
+				"type": "Wait",
+				"dependsOn": [],
+				"userProperties": [
+					{
+						"name": "table",
+						"value": "@pipeline().parameters.TableName"
+					},
+					{
+						"name": "type",
+						"value": "@pipeline().parameters.LoadType"
+					}
+				],
+				"typeProperties": {
+					"waitTimeInSeconds": 10
+				}
+			}
+		],
+		"parameters": {
+			"TableName": {
+				"type": "string"
+			},
+			"LoadType": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-06-25T11:18:57Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

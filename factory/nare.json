@@ -1,0 +1,9 @@
+{
+	"name": "nare",
+	"location": "westus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "7d13f6ea-deb9-4a4c-9c98-7db4b765a358",
+		"tenantId": "f49972ed-9542-44f1-88aa-13f0f1542394"
+	}
+}

@@ -1,0 +1,40 @@
+{
+	"name": "sourcesql",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "TableName",
+				"type": "nvarchar"
+			},
+			{
+				"name": "FileName",
+				"type": "nvarchar"
+			},
+			{
+				"name": "FolderPath",
+				"type": "nvarchar"
+			},
+			{
+				"name": "WatermarkColumn",
+				"type": "nvarchar"
+			},
+			{
+				"name": "LastWatermarkValue",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "TableMetadata2"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

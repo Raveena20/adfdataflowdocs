@@ -1,0 +1,86 @@
+{
+	"name": "partioning",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "sourcecsv",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_SinkTable",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "filter1"
+				},
+				{
+					"name": "AlterRow1"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     folderPath as string,",
+				"     fileName as string,",
+				"     watermarkColumn as string,",
+				"     LastWatermarkValue as string",
+				"}",
+				"source(output(",
+				"          EmployeeID as integer,",
+				"          Name as string,",
+				"          ModifiedDate as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source1 derive(LoadDate = currentUTC(),",
+				"          CleanModifiedDate = iif(   isNull(toTimestamp(ModifiedDate)) || toTimestamp(ModifiedDate) < toTimestamp('1753-01-01'),   toTimestamp('1753-01-01'),   toTimestamp(ModifiedDate) ),",
+				"          EmployeeID = toInteger(EmployeeID),",
+				"          Name = iif(isNull(Name), 'Unknown', Name),",
+				"          ParsedModifiedDate = toTimestamp(ModifiedDate)) ~> derivedColumn1",
+				"derivedColumn1 filter(LoadDate > toTimestamp($LastWatermarkValue, 'yyyy-MM-dd HH:mm:ss')) ~> filter1",
+				"filter1 alterRow(upsertIf(true())) ~> AlterRow1",
+				"AlterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          EmployeeID as integer,",
+				"          Name as string,",
+				"          ModifiedDate as timestamp,",
+				"          LoadDate as timestamp",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:true,",
+				"     keys:['EmployeeID'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          EmployeeID,",
+				"          Name,",
+				"          ModifiedDate,",
+				"          LoadDate",
+				"     ),",
+				"     partitionBy('hash', 4,",
+				"          ModifiedDate",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
